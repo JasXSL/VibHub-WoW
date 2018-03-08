@@ -1,7 +1,8 @@
-import logging, sys, signal, time, json, os, pytweening
+import logging, sys, signal, time, json, os, pytweening, threading
 from collections import deque
 from lib.vhWindows import vhWindows
 from lib.vhSockets import vhSockets
+from lib.vhUI import vhUI
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 #logger = logging.getLogger(__name__)
@@ -13,6 +14,7 @@ class App:
     cacheHP = 0
     conf = vhWindows()
     sock = vhSockets()
+    ui = vhUI()
 
     # Last loop tick
     tickTime = time.time()
@@ -31,9 +33,42 @@ class App:
 
     def __init__(self):
         signal.signal(signal.SIGINT, self.sigint_handler)
+        self.conf.onWowStatus = self.onWowRunning
         self.conf.init()
+        
+        self.ui.setDeviceId(self.conf.deviceID)
+        self.ui.setDeviceServer(self.conf.server)
+        self.ui.setCursorCoordinates(self.conf.cursor["x"], self.conf.cursor["y"])
+        self.ui.onEvt = self.uiEvent
+
+        self.sock.onConnection = self.onConnection
         self.sock.init(self.conf)
-        self.loop()
+
+        thrd = threading.Thread(target=self.loop)
+        thrd.daemon = True
+        thrd.start()
+
+        #start UI
+        self.ui.begin()
+
+    def uiEvent(self, t, data):
+        c = self.conf
+        if t == "settings":
+            c.deviceID = data[0]
+            c.server = data[1]
+            c.saveConfig()
+        elif t == "click":
+            c.cursor["x"] = data[0]
+            c.cursor["y"] = data[1]
+            c.saveConfig()
+
+    def onWowRunning(self, running):
+        self.ui.setWowRunning(running)
+        if not running:
+            self.sock.resetVib()
+
+    def onConnection(self, connected):
+        self.ui.setConnectionStatus(connected)
 
     def startTween(self, amount):
         self.tweenStart = self.tweenVal+amount
@@ -46,6 +81,7 @@ class App:
             self.tweenDuration = 4
         intensity = min(max(self.tweenStart*255, 0), 255)
         self.sock.sendProgram(intensity, self.tweenDuration)
+        
 
     # Sigint handling
     def sigint_handler(self, signal, frame):
@@ -86,11 +122,14 @@ class App:
                 elif tweenPerc > 1:
                     tweenPerc = 1
                 self.tweenVal = pytweening.easeInQuad(tweenPerc)*self.tweenStart
-                
-            after = time.time()
-            logicTime = 1/self.FRAMERATE-(after-t)
-            if logicTime > 0:
-                time.sleep(logicTime)
+
+            if not self.conf.wowPid:
+                time.sleep(1)
+            else:
+                after = time.time()
+                logicTime = 1/self.FRAMERATE-(after-t)
+                if logicTime > 0:
+                    time.sleep(logicTime)
 
 #Begin
 if __name__ == "__main__":
