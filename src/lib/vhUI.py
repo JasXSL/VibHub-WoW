@@ -169,7 +169,7 @@ class vhOverlay:
     root = None
     callback = None
     
-    def __init__(self, base, callback):
+    def __init__(self, callback):
         root = tk.Toplevel()
         root.title = "Click the weakaura"
         root.attributes("-alpha", 0.1)

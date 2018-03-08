@@ -57,10 +57,12 @@ class App:
             c.deviceID = data[0]
             c.server = data[1]
             c.saveConfig()
+            self.sock.resetDevice()
         elif t == "click":
             c.cursor["x"] = data[0]
             c.cursor["y"] = data[1]
             c.saveConfig()
+            self.ui.setCursorCoordinates(self.conf.cursor["x"], self.conf.cursor["y"])
 
     def onWowRunning(self, running):
         self.ui.setWowRunning(running)
@@ -71,14 +73,16 @@ class App:
         self.ui.setConnectionStatus(connected)
 
     def startTween(self, amount):
+        # Power at start of tween
         self.tweenStart = self.tweenVal+amount
+        # Time at start of tween
         self.tweenStarted = time.time()
-        if self.tweenStart < 0.25:
-            self.tweenStart = 0.25
-        self.tweenDuration = self.tweenStart
-        dur = self.TWEEN_DURATION
-        if self.tweenDuration > 4:
-            self.tweenDuration = 4
+        # Power at tween start needs to be at least 15%
+        if self.tweenStart < 0.15:
+            self.tweenStart = 0.15
+        # Duration should be same as intensity
+        # But limited to 0.2+tween_start to 4
+        self.tweenDuration = min(max(self.tweenStart, 0.2+self.tweenStart), 4)
         intensity = min(max(self.tweenStart*255, 0), 255)
         self.sock.sendProgram(intensity, self.tweenDuration)
         
@@ -102,17 +106,18 @@ class App:
             t = time.time()
             passed = t-self.tickTime
             self.tickTime = t
+            conf = self.conf
+            conf.processScan()   # See if WoW is running or not
 
-            self.conf.processScan()   # See if WoW is running or not
-            
             if self.sock.connected and self.conf.wowPid:
-                conf = self.conf
+
                 color = conf.updatePixelColor()
-                index = 0
-                hpp = conf.r/255
-                if hpp < self.cacheHP:
-                    self.startTween((self.cacheHP-hpp)*5)
-                self.cacheHP = hpp
+                if conf.g == 51:
+                    index = 0
+                    hpp = conf.r/255
+                    if hpp < self.cacheHP:
+                        self.startTween((self.cacheHP-hpp)*5)
+                    self.cacheHP = hpp
 
             if self.tweenStarted:
                 tweenPerc = 1-(t-self.tweenStarted)/self.tweenDuration;
@@ -132,5 +137,4 @@ class App:
                     time.sleep(logicTime)
 
 #Begin
-if __name__ == "__main__":
-    App()
+App()

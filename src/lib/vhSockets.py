@@ -83,15 +83,20 @@ class vhSockets:
 
     def on_name(*args):
         self = args[0]
-        win = self.win
         print('<<WS Evt>> App name accepted, hooking up our device')
-        self.socketIO.emit('hookup', win.deviceID, self.on_hookup)
+        self.setDeviceId()
+
+    def resetDevice(self):
+        self.socketIO.emit('hookdown', [], self.setDeviceId)
 
     def on_device_connected(*args):
         print('Device connected, resetting it')
         self = args[0]
         self.resetVib()
 
-    def resetVib():
+    def resetVib(self):
         self.sendP(bytes([0,0,0,0,0]))
 
+    def setDeviceId(*args):
+        self = args[0]
+        self.socketIO.emit('hookup', self.win.deviceID, self.on_hookup)
