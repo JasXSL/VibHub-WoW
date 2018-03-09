@@ -29,7 +29,9 @@ class App:
 
     TWEEN_DURATION = 1
     FRAMERATE = 4
-    
+
+    # Time to run a save
+    saveScheduled = 0
 
     def __init__(self):
         signal.signal(signal.SIGINT, self.sigint_handler)
@@ -38,6 +40,8 @@ class App:
         
         self.ui.setDeviceId(self.conf.deviceID)
         self.ui.setDeviceServer(self.conf.server)
+        self.ui.setIntensity(self.conf.maxIntensity)
+        self.ui.setRatio(self.conf.hpRatio)
         self.ui.setCursorCoordinates(self.conf.cursor["x"], self.conf.cursor["y"])
         self.ui.onEvt = self.uiEvent
 
@@ -63,6 +67,14 @@ class App:
             c.cursor["y"] = data[1]
             c.saveConfig()
             self.ui.setCursorCoordinates(self.conf.cursor["x"], self.conf.cursor["y"])
+        elif t == "intensity":
+            c.maxIntensity = data[0]
+            self.scheduleSave()
+        elif t == "ratio":
+            c.hpRatio = data[0]
+            self.scheduleSave()
+        elif t == "weakaura":
+            self.conf.copyWeakaura()
 
     def onWowRunning(self, running):
         self.ui.setWowRunning(running)
@@ -71,6 +83,9 @@ class App:
 
     def onConnection(self, connected):
         self.ui.setConnectionStatus(connected)
+
+    def scheduleSave(self):
+        self.saveScheduled = time.time()+0.2
 
     def startTween(self, amount):
         # Power at start of tween
@@ -83,7 +98,7 @@ class App:
         # Duration should be same as intensity
         # But limited to 0.2+tween_start to 4
         self.tweenDuration = min(max(self.tweenStart, 0.2+self.tweenStart), 4)
-        intensity = min(max(self.tweenStart*255, 0), 255)
+        intensity = min(max(self.tweenStart*self.conf.maxIntensity, 0), self.conf.maxIntensity)
         self.sock.sendProgram(intensity, self.tweenDuration)
         
 
@@ -109,6 +124,10 @@ class App:
             conf = self.conf
             conf.processScan()   # See if WoW is running or not
 
+            if self.saveScheduled and self.saveScheduled < t:
+                self.saveScheduled = 0
+                self.conf.saveConfig()
+
             if self.sock.connected and self.conf.wowPid:
 
                 color = conf.updatePixelColor()
@@ -116,7 +135,7 @@ class App:
                     index = 0
                     hpp = conf.r/255
                     if hpp < self.cacheHP:
-                        self.startTween((self.cacheHP-hpp)*5)
+                        self.startTween((self.cacheHP-hpp)*self.conf.hpRatio)
                     self.cacheHP = hpp
 
             if self.tweenStarted:

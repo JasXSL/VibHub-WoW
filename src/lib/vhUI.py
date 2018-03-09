@@ -11,6 +11,10 @@ class vhUI:
     settingsButton = None
     onEvt = None
     wowRunning = None
+    rangeMaxIntensity = None
+    rangeIntensityPerHp = None
+    #Weekaura button
+    waButton = None
     
     def __init__(self):
         root = tk.Tk()
@@ -21,26 +25,25 @@ class vhUI:
         root.tk.call('wm', 'iconphoto', root._w, icon)
         # Connection status
         row = 0
+        padx = 3
+        pady = 3
+        
         self.wowRunning = tk.Label(
             self.root,
-            padx = 10,
-            pady = 5,
             fg = "dark red",
             font = "helvetica 12 bold",
             text = "WoW Not Running"
             )
-        self.wowRunning.grid(row=row, columnspan=2)
+        self.wowRunning.grid(row=row, columnspan=2, padx=padx, pady=pady)
 
         # Connection status
         row = row+1
         self.connectionStatus = tk.Label(
             self.root,
-            padx = 10,
-            pady = 5,
             fg = "dark red",
             text = "Disconnected"
             )
-        self.connectionStatus.grid(row=row, columnspan=2)
+        self.connectionStatus.grid(row=row, columnspan=2, padx=padx, pady=pady)
 
         # Coordinates
         row = row+1
@@ -50,7 +53,7 @@ class vhUI:
             pady = 5,
             text = "Tracking X: 0 Y: 0"
             )
-        self.targetCoordinates.grid(row=row, columnspan=2)
+        self.targetCoordinates.grid(row=row, columnspan=2, padx=padx, pady=pady)
 
         # TargetButton
         row = row+1
@@ -61,13 +64,54 @@ class vhUI:
             width=25,
             command=self.onTargetButton
             )
-        self.targetButton.grid(row=row, columnspan=2)
+        self.targetButton.grid(row=row, columnspan=2, padx=padx, pady=pady)
+
+        ## Weakaura button
+        row = row+1
+        self.waButton = tk.Button(
+            self.root,
+            text='Get Weakaura',
+            width=25,
+            font = "helvetica 10",
+            command=self.onWaButton
+            )
+        self.waButton.grid(row=row, columnspan=2, padx=padx, pady=pady)
+
+        # Max Power
+        row = row+1
+        tk.Label(self.root,
+                 text='Max Intensity',
+                 font = "helvetica 12"
+                 ).grid(row=row, column=0, sticky="sw", padx=padx, pady=pady)
+        self.rangeMaxIntensity = tk.Scale(root,
+                                          from_=1,
+                                          to=255,
+                                          orient=tk.HORIZONTAL,
+                                          length=160,
+                                          command=self.onMaxIntensityChange
+                                          )
+        self.rangeMaxIntensity.grid(row=row, column=1, sticky="e", padx=padx, pady=pady)
+
+        # HP power ratio
+        row = row+1
+        tk.Label(self.root,
+                 text='Intens:HP Ratio',
+                 font = "helvetica 12"
+                 ).grid(row=row, column=0, sticky="sw", padx=padx, pady=pady)
+        self.rangeIntensityPerHp = tk.Scale(root,
+                                          from_=1,
+                                          to=50,
+                                          orient=tk.HORIZONTAL,
+                                          length=160,
+                                          command=self.onRatioChange
+                                          )
+        self.rangeIntensityPerHp.grid(row=row, column=1, sticky="e", padx=padx, pady=pady)
 
         # HR
         row = row+1
         canvas = tk.Canvas(self.root, width=250, height=5)
         canvas.create_line(0,5,250,5,width=1,dash=1)
-        canvas.grid(row=row, columnspan=2)
+        canvas.grid(row=row, columnspan=2, padx=padx, pady=pady)
 
         # DeviceID insert
         row = row+1
@@ -77,15 +121,14 @@ class vhUI:
             font = "helvetica 12",
             anchor = "w",
             width=8
-            ).grid(row=row, sticky="w")
+            ).grid(row=row, sticky="w", padx=padx, pady=pady)
         self.inputDeviceID = tk.Text(
             self.root,
             height=1,
             font = "helvetica 12",
             width=20,
             )
-        self.inputDeviceID.grid(row=row, column=1)
-        self.inputDeviceID.insert(tk.END, "BigRedButton")
+        self.inputDeviceID.grid(row=row, column=1, padx=padx, pady=pady)
 
         # Server insert
         row = row+1
@@ -95,16 +138,14 @@ class vhUI:
             font = "helvetica 12",
             anchor = "w",
             width=8
-            ).grid(row=row, sticky="w")
+            ).grid(row=row, sticky="w", padx=padx, pady=pady)
         self.inputServer = tk.Text(
             self.root,
             height=1,
             font = "helvetica 12",
             width=20,
             )
-        self.inputServer.grid(row=row, column=1)
-        self.inputServer.insert(tk.END, "vibhub.io")
-
+        self.inputServer.grid(row=row, column=1, padx=padx, pady=pady)
 
         #Save button
         row = row+1
@@ -115,7 +156,8 @@ class vhUI:
             font = "helvetica 12",
             command=self.onSettingsSave
             )
-        self.settingsButton.grid(row=row, columnspan=2, sticky='we')
+        self.settingsButton.grid(row=row, columnspan=2, sticky='we', padx=padx, pady=pady)
+
 
     def begin(self):
         self.root.mainloop()
@@ -129,6 +171,24 @@ class vhUI:
         serv = self.inputServer.get("1.0",tk.END).strip()
         self.raiseEvent("settings", [devid, serv])
         tk.messagebox.showinfo("Settings Saved!", "Settings have been saved!")
+
+    def onWaButton(self):
+        self.raiseEvent("weakaura", [])
+        tk.messagebox.showinfo("Weakaura copied!", "Weak aura copied! You can now paste it in WoW!")
+
+    def onMaxIntensityChange(*args):
+        self = args[0]
+        self.raiseEvent( "intensity", [self.rangeMaxIntensity.get()] )
+
+    def onRatioChange(*args):
+        self = args[0]
+        self.raiseEvent( "ratio", [self.rangeIntensityPerHp.get()] )
+
+    def setIntensity(self, intensity):
+        self.rangeMaxIntensity.set(intensity)
+
+    def setRatio(self, ratio):
+        self.rangeIntensityPerHp.set(ratio)
 
     def setDeviceId(self, deviceid):
         t = self.inputDeviceID

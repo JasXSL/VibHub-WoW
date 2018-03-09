@@ -1,7 +1,7 @@
 # Used for MS & Config reading/writing
 # Reads from screen and harddrive
 from ctypes import windll, Structure, c_long, byref
-import sys, os, json, subprocess, psutil
+import sys, os, json, subprocess, psutil, pyperclip
 
 
 
@@ -15,10 +15,15 @@ class vhWindows:
     g = 0
     b = 0
     wowPid = 0
+    # Max intensity of output
+    maxIntensity = 255
+    # Percent of max intensity to add from taking damage
+    hpRatio = 5
 
     # Event raised when WoW is started or stopped
     # Takes 1 argument which is true/false
     onWowStatus = None
+
 
     def init(self):
         argv = sys.argv
@@ -56,7 +61,9 @@ class vhWindows:
         confFile.write(json.dumps({
             "cursor" : [self.cursor["x"],self.cursor["y"]],
             "server" : self.server,
-            "deviceID" : self.deviceID
+            "deviceID" : self.deviceID,
+            "maxIntensity" : self.maxIntensity,
+            "hpRatio" : self.hpRatio
         }))
         confFile.close()
 
@@ -69,11 +76,23 @@ class vhWindows:
             self.cursor["y"] = js["cursor"][1]
             self.server = js["server"]
             self.deviceID = js["deviceID"]
+            self.maxIntensity = js["maxIntensity"]
+            self.hpRatio = js["hpRatio"]
             print("Loaded settings:")
             print("  DeviceID: ", self.deviceID)
             print("  Server: ", self.server)
+            print("  Max Intens: ", self.maxIntensity)
+            print("  HP Ratio: ", self.hpRatio)
             print("  Cursor: ", self.cursor["x"], self.cursor["y"])
             print("Start the program with reset as an argument to reconfigure")
-            return True
         except FileNotFoundError:
-            return False
+            pass
+
+    def copyWeakaura(self):
+        try:
+            confFile = open("weakaura.txt", "r")
+            data = confFile.read()
+            confFile.close()
+            pyperclip.copy(data)
+        except FileNotFoundError:
+            pass
