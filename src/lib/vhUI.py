@@ -13,6 +13,7 @@ class vhUI:
     wowRunning = None
     rangeMaxIntensity = None
     rangeIntensityPerHp = None
+    rangeMinIntensity = None
     #Weekaura button
     waButton = None
     
@@ -91,6 +92,21 @@ class vhUI:
                                           command=self.onMaxIntensityChange
                                           )
         self.rangeMaxIntensity.grid(row=row, column=1, sticky="e", padx=padx, pady=pady)
+
+        # Min Power
+        row = row+1
+        tk.Label(self.root,
+                 text='Min Intensity',
+                 font = "helvetica 12"
+                 ).grid(row=row, column=0, sticky="sw", padx=padx, pady=pady)
+        self.rangeMinIntensity = tk.Scale(root,
+                                          from_=1,
+                                          to=255,
+                                          orient=tk.HORIZONTAL,
+                                          length=160,
+                                          command=self.onMinIntensityChange
+                                          )
+        self.rangeMinIntensity.grid(row=row, column=1, sticky="e", padx=padx, pady=pady)
 
         # HP power ratio
         row = row+1
@@ -180,12 +196,19 @@ class vhUI:
         self = args[0]
         self.raiseEvent( "intensity", [self.rangeMaxIntensity.get()] )
 
+    def onMinIntensityChange(*args):
+        self = args[0]
+        self.raiseEvent( "minintensity", [self.rangeMinIntensity.get()] )
+
     def onRatioChange(*args):
         self = args[0]
         self.raiseEvent( "ratio", [self.rangeIntensityPerHp.get()] )
 
     def setIntensity(self, intensity):
         self.rangeMaxIntensity.set(intensity)
+
+    def setMinIntensity(self, intensity):
+        self.rangeMinIntensity.set(intensity)
 
     def setRatio(self, ratio):
         self.rangeIntensityPerHp.set(ratio)

@@ -37,11 +37,13 @@ class App:
         signal.signal(signal.SIGINT, self.sigint_handler)
         self.conf.onWowStatus = self.onWowRunning
         self.conf.init()
+
         
         self.ui.setDeviceId(self.conf.deviceID)
         self.ui.setDeviceServer(self.conf.server)
         self.ui.setIntensity(self.conf.maxIntensity)
         self.ui.setRatio(self.conf.hpRatio)
+        self.ui.setMinIntensity(self.conf.minIntensity)
         self.ui.setCursorCoordinates(self.conf.cursor["x"], self.conf.cursor["y"])
         self.ui.onEvt = self.uiEvent
 
@@ -69,7 +71,15 @@ class App:
             self.ui.setCursorCoordinates(self.conf.cursor["x"], self.conf.cursor["y"])
         elif t == "intensity":
             c.maxIntensity = data[0]
+            c.minIntensity = min(c.maxIntensity, c.minIntensity)
+            self.ui.setMinIntensity(c.minIntensity)
             self.scheduleSave()
+        elif t == "minintensity":
+            c.minIntensity = data[0]
+            c.maxIntensity = max(c.maxIntensity, c.minIntensity)
+            self.ui.setIntensity(c.maxIntensity)
+            self.scheduleSave()
+        
         elif t == "ratio":
             c.hpRatio = data[0]
             self.scheduleSave()
@@ -93,12 +103,15 @@ class App:
         # Time at start of tween
         self.tweenStarted = time.time()
         # Power at tween start needs to be at least 15%
-        if self.tweenStart < 0.15:
-            self.tweenStart = 0.15
-        # Duration should be same as intensity
-        # But limited to 0.2+tween_start to 4
-        self.tweenDuration = min(max(self.tweenStart, 0.2+self.tweenStart), 4)
-        intensity = min(max(self.tweenStart*self.conf.maxIntensity, 0), self.conf.maxIntensity)
+        
+        # Duration should be total intensity plus 0.2, but max 4
+        self.tweenDuration = min(0.2+self.tweenStart*2, 4)
+        # Intensity slides between min and max
+        intensity = min(max(
+            self.tweenStart*
+            (self.conf.maxIntensity-self.conf.minIntensity)+
+            self.conf.minIntensity, 0), self.conf.maxIntensity)
+        #print(amount, intensity, self.tweenDuration)
         self.sock.sendProgram(intensity, self.tweenDuration)
         
 
@@ -124,7 +137,7 @@ class App:
             conf = self.conf
             conf.processScan()   # See if WoW is running or not
 
-            if self.saveScheduled and self.saveScheduled < t:
+            if self.saveScheduled:
                 self.saveScheduled = 0
                 self.conf.saveConfig()
 
@@ -137,7 +150,6 @@ class App:
                     if hpp < self.cacheHP:
                         self.startTween((self.cacheHP-hpp)*self.conf.hpRatio)
                     self.cacheHP = hpp
-
             if self.tweenStarted:
                 tweenPerc = 1-(t-self.tweenStarted)/self.tweenDuration;
                 if tweenPerc < 0:

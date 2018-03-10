@@ -17,6 +17,7 @@ class vhWindows:
     wowPid = 0
     # Max intensity of output
     maxIntensity = 255
+    minIntensity = 30
     # Percent of max intensity to add from taking damage
     hpRatio = 5
 
@@ -63,7 +64,8 @@ class vhWindows:
             "server" : self.server,
             "deviceID" : self.deviceID,
             "maxIntensity" : self.maxIntensity,
-            "hpRatio" : self.hpRatio
+            "hpRatio" : self.hpRatio,
+            "minIntensity" : self.minIntensity
         }))
         confFile.close()
 
@@ -72,18 +74,29 @@ class vhWindows:
             confFile = open("conf.json", "r")
             js = json.loads(confFile.read())
             confFile.close()
-            self.cursor["x"] = js["cursor"][0]
-            self.cursor["y"] = js["cursor"][1]
-            self.server = js["server"]
-            self.deviceID = js["deviceID"]
-            self.maxIntensity = js["maxIntensity"]
-            self.hpRatio = js["hpRatio"]
+            if "cursor" in js and isinstance(js["cursor"], list) and len(js["cursor"]):
+                self.cursor["x"] = js["cursor"][0]
+            if "cursor" in js and isinstance(js["cursor"], list) and len(js["cursor"]) > 1:
+                self.cursor["y"] = js["cursor"][1]
+            if "server" in js:
+                self.server = js["server"]
+            if "deviceID" in js:
+                self.deviceID = js["deviceID"]
+            if "maxIntensity" in js:
+                self.maxIntensity = js["maxIntensity"]
+            if "hpRatio" in js:
+                self.hpRatio = js["hpRatio"]
+            if "minIntensity" in js:
+                self.minIntensity = min(js["minIntensity"], self.maxIntensity)
+            
             print("Loaded settings:")
             print("  DeviceID: ", self.deviceID)
             print("  Server: ", self.server)
             print("  Max Intens: ", self.maxIntensity)
+            print("  Min Intens: ", self.minIntensity)
             print("  HP Ratio: ", self.hpRatio)
             print("  Cursor: ", self.cursor["x"], self.cursor["y"])
+            
             print("Start the program with reset as an argument to reconfigure")
         except FileNotFoundError:
             pass
