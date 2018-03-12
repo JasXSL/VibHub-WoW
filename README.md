@@ -4,7 +4,7 @@ A [VibHub](https://github.com/JasXSL/VibHub-Client) connector app for World of W
 
 # Install
 
-1. Download the pre-built VibHubWow_0_x.7z zip file from this repository. Unzip it somewhere on your drive.
+1. [Download a pre-built zip file from releases](https://github.com/JasXSL/VibHub-WoW/releases). Unzip it somewhere on your drive.
 2. Run VibHubWow.exe
 
 # Connect VibHub to WoW via Weakauras 2
