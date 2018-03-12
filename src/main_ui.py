@@ -157,7 +157,7 @@ class App:
                     self.tweenStarted = 0
                 elif tweenPerc > 1:
                     tweenPerc = 1
-                self.tweenVal = pytweening.easeInQuad(tweenPerc)*self.tweenStart
+                self.tweenVal = pytweening.linear(tweenPerc)*self.tweenStart
 
             if not self.conf.wowPid:
                 time.sleep(1)
